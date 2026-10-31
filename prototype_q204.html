@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototipe Monitoring Rapor MANAGE - Tim TOM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen p-4 md:p-8 font-sans">
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Header Panel Penguji (Stopwatch) -->
+    <div class="bg-slate-900 text-white rounded-xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4 border border-slate-800">
+      <div>
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Panel Penguji (Observer Tool)</span>
+        <h2 class="text-sm font-medium text-slate-200">Pengukuran Waktu Deteksi & Aksi (Time-on-Task)</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="stopwatchDisplay" class="font-mono text-2xl font-bold bg-slate-950 px-4 py-1.5 rounded-lg border border-slate-700 text-emerald-400">
+          00:00.0
+        </div>
+        <button id="btnStart" onclick="startTimer()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold rounded-lg transition-colors">
+          Mulai Tes
+        </button>
+        <button id="btnReset" onclick="resetTimer()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg transition-colors">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      
+      <!-- Top Navigation Bar -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            M
+          </div>
+          <div>
+            <h1 class="text-base font-bold text-slate-900 leading-tight">Monitoring Distribusi Rapor MANAGE</h1>
+            <p class="text-xs text-slate-500">Divisi HRD HMSI ITS • Batch Evaluasi 2026</p>
+          </div>
+        </div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          Status: Butuh Pemulihan
+        </div>
+      </div>
+
+      <div class="p-6 space-y-6">
+
+        <!-- 3 Kartu Ringkasan Status (Above the fold) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4">
+            <p class="text-xs font-medium text-emerald-700">Selesai & Terkirim Aman</p>
+            <p class="text-2xl font-bold text-emerald-900 mt-1">34 <span class="text-xs font-normal text-emerald-700">Mahasiswa</span></p>
+            <p class="text-xs text-emerald-600 mt-1">✓ Baris 1 sampai 34 aman</p>
+          </div>
+
+          <div class="bg-rose-50 border-2 border-rose-300 rounded-xl p-4 relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold uppercase tracking-wider text-rose-700">Gagal / Terhenti</p>
+              <span class="px-2 py-0.5 bg-rose-200 text-rose-800 text-[10px] font-bold rounded">Perlu Aksi</span>
+            </div>
+            <p class="text-2xl font-black text-rose-900 mt-1">1 <span class="text-xs font-semibold text-rose-700">(Baris 35)</span></p>
+            <p class="text-xs text-rose-600 mt-1 font-medium">Render timeout saat memproses halaman</p>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-medium text-slate-600">Sisa Antrean Belum Diproses</p>
+            <p class="text-2xl font-bold text-slate-800 mt-1">175 <span class="text-xs font-normal text-slate-500">Mahasiswa</span></p>
+            <p class="text-xs text-slate-500 mt-1">Baris 36 sampai baris 210</p>
+          </div>
+        </div>
+
+        <!-- Tabel Fokus Deteksi (Baris 33 - 37) -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+          <div class="bg-slate-100/70 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600">
+            <span class="font-semibold text-slate-700">Potongan Log Status Antrean (Fokus Area Insiden)</span>
+            <span>Menampilkan 5 dari 210 data</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+                <tr>
+                  <th class="py-2.5 px-4">Baris</th>
+                  <th class="py-2.5 px-4">NRP</th>
+                  <th class="py-2.5 px-4">Nama Peserta</th>
+                  <th class="py-2.5 px-4">Status PDF</th>
+                  <th class="py-2.5 px-4">Status Kirim Email</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr class="text-slate-600 bg-white">
+                  <td class="py-2.5 px-4 font-mono font-medium">33</td>
+                  <td class="py-2.5 px-4 font-mono">5026231033</td>
+                  <td class="py-2.5 px-4 font-medium">Aditya Wicaksana</td>
+                  <td class="py-2.5 px-4 text-emerald-600 font-medium">✓ Berhasil</td>
+                  <td class="py-2.5 px-4 text-emerald-600 font-medium">Terkirim (22:10)</td>
+                </tr>
+                <tr class="text-slate-600 bg-white">
+                  <td class="py-2.5 px-4 font-mono font-medium">34</td>
+                  <td class="py-2.5 px-4 font-mono">5026231034</td>
+                  <td class="py-2.5 px-4 font-medium">Bella Safira</td>
+                  <td class="py-2.5 px-4 text-emerald-600 font-medium">✓ Berhasil</td>
+                  <td class="py-2.5 px-4 text-emerald-600 font-medium">Terkirim (22:12)</td>
+                </tr>
+                
+                <!-- Highlight Row 35 -->
+                <tr class="bg-rose-100/70 border-y-2 border-rose-300 text-rose-950 font-semibold">
+                  <td class="py-3 px-4 font-mono text-sm text-rose-900 font-bold">35</td>
+                  <td class="py-3 px-4 font-mono">5026231035</td>
+                  <td class="py-3 px-4 text-rose-900 font-bold">Cahyo Nugroho</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-200 text-rose-800">
+                      ✕ Gagal (Timeout 6 Menit)
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-rose-700 italic">Belum terkirim</td>
+                </tr>
+
+                <tr class="text-slate-400 bg-slate-50/50">
+                  <td class="py-2.5 px-4 font-mono font-medium">36</td>
+                  <td class="py-2.5 px-4 font-mono">5026231036</td>
+                  <td class="py-2.5 px-4">Dinda Ayu Lestari</td>
+                  <td class="py-2.5 px-4 italic text-slate-400">Antrean</td>
+                  <td class="py-2.5 px-4 italic text-slate-400">Menunggu antrean</td>
+                </tr>
+                <tr class="text-slate-400 bg-slate-50/50">
+                  <td class="py-2.5 px-4 font-mono font-medium">37</td>
+                  <td class="py-2.5 px-4 font-mono">5026231037</td>
+                  <td class="py-2.5 px-4">Eko Prasetyo</td>
+                  <td class="py-2.5 px-4 italic text-slate-400">Antrean</td>
+                  <td class="py-2.5 px-4 italic text-slate-400">Menunggu antrean</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tombol Aksi Pemulihan Satu Pintu -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div class="text-xs text-slate-600">
+            <span class="font-bold text-slate-800">Tindakan Pemulihan Cepat:</span> Sistem otomatis melanjutkan pengerjaan mulai dari baris ke-35 tanpa mengirim ulang baris 1 s.d. 34.
+          </div>
+          <button id="btnAction" onclick="executeRecovery()" class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all transform active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
+            <span>▶</span> Lanjutkan Eksekusi dari Baris 35 sampai Baris 210
+          </button>
+        </div>
+
+        <!-- Alert Notifikasi Saat Tombol Ditekan -->
+        <div id="successNotice" class="hidden p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs">
+          <p class="font-bold">✓ Berhasil Dipulihkan!</p>
+          <p class="mt-0.5">Pemulihan proses otomatis dijalankan untuk baris 35 (Cahyo Nugroho) hingga baris 210. Stopwatch pengujian telah dihentikan secara otomatis.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Stopwatch & Interaksi Pengujian -->
+  <script>
+    let startTime = null;
+    let timerInterval = null;
+    let isRunning = false;
+
+    function startTimer() {
+      if (!isRunning) {
+        startTime = Date.now();
+        timerInterval = setInterval(updateDisplay, 100);
+        isRunning = true;
+        document.getElementById('btnStart').innerText = "Berjalan...";
+        document.getElementById('btnStart').classList.replace('bg-emerald-600', 'bg-amber-600');
+        document.getElementById('successNotice').classList.add('hidden');
+      }
+    }
+
+    function stopTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        document.getElementById('btnStart').innerText = "Mulai Tes";
+        document.getElementById('btnStart').classList.replace('bg-amber-600', 'bg-emerald-600');
+      }
+    }
+
+    function resetTimer() {
+      stopTimer();
+      document.getElementById('stopwatchDisplay').innerText = "00:00.0";
+      document.getElementById('successNotice').classList.add('hidden');
+    }
+
+    function updateDisplay() {
+      const elapsed = Date.now() - startTime;
+      const totalSeconds = (elapsed / 1000).toFixed(1);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = (totalSeconds % 60).toFixed(1);
+      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(4, '0')}`;
+      document.getElementById('stopwatchDisplay').innerText = formatted;
+    }
+
+    function executeRecovery() {
+      stopTimer();
+      document.getElementById('successNotice').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
