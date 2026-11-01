@@ -3,16 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prototipe Monitoring Rapor MANAGE - Tim TOM</title>
+  <title>Prototipe Monitoring Rapor MANAGE v2 - Tim TOM</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen p-4 md:p-8 font-sans">
   <div class="max-w-4xl mx-auto space-y-6">
 
+    <!-- Panel penguji dapat disembunyikan agar tidak terlihat peserta (tombol atau tekan H). Stopwatch tetap berjalan. Pintasan: S = mulai, R = reset. -->
+
     <!-- Header Panel Penguji (Stopwatch) -->
-    <div class="bg-slate-900 text-white rounded-xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4 border border-slate-800">
+    <div id="observerPanel" class="bg-slate-900 text-white rounded-xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4 border border-slate-800">
       <div>
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Panel Penguji (Observer Tool)</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Panel Penguji (Observer Tool) • Prototipe v2</span>
         <h2 class="text-sm font-medium text-slate-200">Pengukuran Waktu Deteksi & Aksi (Time-on-Task)</h2>
       </div>
       <div class="flex items-center gap-3">
@@ -24,6 +26,9 @@
         </button>
         <button id="btnReset" onclick="resetTimer()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg transition-colors">
           Reset
+        </button>
+        <button id="btnHide" onclick="togglePanel()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg transition-colors">
+          Sembunyikan
         </button>
       </div>
     </div>
@@ -142,7 +147,7 @@
         <!-- Tombol Aksi Pemulihan Satu Pintu -->
         <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
           <div class="text-xs text-slate-600">
-            <span class="font-bold text-slate-800">Tindakan Pemulihan Cepat:</span> Sistem otomatis melanjutkan pengerjaan mulai dari baris ke-35 tanpa mengirim ulang baris 1 s.d. 34.
+            <span class="font-bold text-slate-800">Aksi:</span> Pilih tindakan yang menurut Anda perlu dilakukan sekarang.
           </div>
           <button id="btnAction" onclick="executeRecovery()" class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all transform active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
             <span>▶</span> Lanjutkan Eksekusi dari Baris 35 sampai Baris 210
@@ -151,8 +156,8 @@
 
         <!-- Alert Notifikasi Saat Tombol Ditekan -->
         <div id="successNotice" class="hidden p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs">
-          <p class="font-bold">✓ Berhasil Dipulihkan!</p>
-          <p class="mt-0.5">Pemulihan proses otomatis dijalankan untuk baris 35 (Cahyo Nugroho) hingga baris 210. Stopwatch pengujian telah dihentikan secara otomatis.</p>
+          <p class="font-bold">Tombol ditekan (simulasi)</p>
+          <p class="mt-0.5">Ini simulasi. Tombol belum menjalankan proses pengiriman yang sebenarnya, hanya menghentikan stopwatch pengujian.</p>
         </div>
 
       </div>
@@ -193,12 +198,23 @@
 
     function updateDisplay() {
       const elapsed = Date.now() - startTime;
-      const totalSeconds = (elapsed / 1000).toFixed(1);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = (totalSeconds % 60).toFixed(1);
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = ((elapsed % 60000) / 1000).toFixed(1);
       const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(4, '0')}`;
       document.getElementById('stopwatchDisplay').innerText = formatted;
     }
+
+    function togglePanel() {
+      const p = document.getElementById('observerPanel');
+      p.classList.toggle('invisible');
+    }
+
+    document.addEventListener('keydown', function (e) {
+      const k = e.key.toLowerCase();
+      if (k === 'h') togglePanel();
+      if (k === 's') startTimer();
+      if (k === 'r') resetTimer();
+    });
 
     function executeRecovery() {
       stopTimer();
