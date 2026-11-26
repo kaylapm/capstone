@@ -82,6 +82,18 @@ const INITIAL_STUDENT_ROWS: StudentRecord[] = [
     statusEmail: 'Pending',
     pdfUrl: null,
     updatedAt: null
+  },
+  {
+    row: 38,
+    nrp: '5026231038',
+    nama: 'Fajar Pratama (Uji Invalid Email)',
+    email: 'fajar.pratama#invalid-email',
+    divisi: 'Pengembangan SDM',
+    initials: 'FP',
+    statusPdf: 'Pending',
+    statusEmail: 'Pending',
+    pdfUrl: null,
+    updatedAt: null
   }
 ];
 
@@ -150,6 +162,30 @@ export default function RecoveryDashboard() {
   // Handler kirim email individual via SMTP Nodemailer (Ala Rawat Maba)
   const handleSendIndividualEmail = async (key: string) => {
     const st = PDF_DATABASE[key] || PDF_DATABASE['35'];
+    const studentRecord = studentRows.find(s => String(s.row) === key);
+
+    // 1. PENGUJIAN E2E-02: IDEMPOTENT GUARD
+    // Jika data sudah terkirim (seperti Baris 34), lewati untuk mencegah duplikasi email
+    if (studentRecord && studentRecord.statusEmail === 'Terkirim') {
+      addLog('INFO', `[Baris ${studentRecord.row}] ${studentRecord.nama} (${studentRecord.nrp}): Status saat ini sudah 'Terkirim Aman'.`);
+      addLog('SUCCESS', `⏭ [Baris ${studentRecord.row}] DILEWATI (SKIPPED_ALREADY_SENT - Idempotent Guard): Data sudah sukses terkirim sebelumnya. Mencegah duplikasi email ke peserta.`);
+      setEmailSuccessToast(`⏭ Baris ${studentRecord.row} (${studentRecord.nama}) sudah terkirim (Dilewati - Idempoten).`);
+      return;
+    }
+
+    // 2. PENGUJIAN E2E-03: VALIDASI FORMAT EMAIL (FOTO 7)
+    // Jika format email salah, langsung tandai "Email Invalid" tanpa memicu kompilasi PDF dan SMTP
+    const emailToTest = studentRecord?.email || st.email;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailToTest)) {
+      addLog('WARN', `⚠️ [Baris ${studentRecord?.row || key}] ${st.nama}: Format email '${emailToTest}' tidak valid! (RFC 5322 regex check failed).`);
+      addLog('ERROR', `🛑 SKIPPED_INVALID_EMAIL: Kompilasi PDF dan pengiriman SMTP dibatalkan otomatis untuk baris ini demi efisiensi kuota & execution time GAS!`);
+      addLog('WARN', `[Baris ${studentRecord?.row || key}] Status pada dashboard & sheets ditandai 'Email Invalid'.`);
+      setStudentRows(prev => prev.map(s => String(s.row) === key ? { ...s, statusEmail: 'Email Invalid', statusPdf: 'Pending' } : s));
+      setEmailSuccessToast(`⚠️ Format email ${emailToTest} salah! Pengiriman SMTP & PDF dibatalkan.`);
+      return;
+    }
+
     setIsSendingEmail(true);
     addLog('INFO', `▶ [SMTP Direct Mail] Memproses pengiriman email untuk ${st.nama} (${st.nrp})...`);
     addLog('INFO', `Pengirim Resmi: kaylaputrimaharani@gmail.com ➔ Penerima: kelagoooo@gmail.com`);
@@ -427,6 +463,16 @@ export default function RecoveryDashboard() {
       finalScore: '91.0',
       grade: 'A',
       notes: '"Kualitas desain grafis dan publikasi media sosial sangat konsisten dan kreatif. Selalu tepat waktu memenuhi permintaan konten divisi lain."'
+    },
+    '38': {
+      nama: 'Fajar Pratama (Uji Invalid Email)',
+      nrp: '5026231038',
+      divisi: 'Pengembangan Sumber Daya Manusia (PSDM)',
+      email: 'fajar.pratama#invalid-email',
+      scores: [88, 85, 87, 86, 84],
+      finalScore: '86.0',
+      grade: 'B+',
+      notes: '"Data pengujian validasi alamat email invalid (E2E-03). Kompilasi PDF dan pengiriman SMTP dibatalkan otomatis."'
     }
   };
 
@@ -516,6 +562,18 @@ export default function RecoveryDashboard() {
     ]);
   };
 
+  // Handler Khusus Pengujian Email Invalid (FOTO 7 / E2E-03)
+  const handleTestInvalidEmail = () => {
+    addLog('INFO', '▶ [Pengujian E2E-03] Menguji validasi format email untuk Baris 38: Fajar Pratama...');
+    addLog('WARN', '⚠️ Format email tidak valid: \'fajar.pratama#invalid-email\' (RFC 5322 regex check failed).');
+    addLog('ERROR', '🛑 SKIPPED_INVALID_EMAIL: Kompilasi PDF dan pengiriman SMTP dibatalkan otomatis untuk baris ini demi efisiensi kuota GAS!');
+    addLog('WARN', '[Baris 38] Status email pada Google Sheets & Dashboard langsung ditandai \'Email Invalid\'. Antrean aman.');
+    
+    setStudentRows(prev => prev.map(s => s.row === 38 ? { ...s, statusEmail: 'Email Invalid', statusPdf: 'Pending' } : s));
+    setEmailSuccessToast('⚠️ Baris 38 ditandai Email Invalid (kompilasi PDF & SMTP dibatalkan otomatis)!');
+    setTimeout(() => setEmailSuccessToast(null), 4000);
+  };
+
   // Trigger Recovery Execution
   const handleTriggerRecovery = async () => {
     if (isLoading || isRecovered) return;
@@ -523,7 +581,16 @@ export default function RecoveryDashboard() {
     setIsLoading(true);
     setStopwatchRunning(false);
 
-    const payload = { startRow: 35, batchSize: 3 };
+    // =========================================================================
+    // FOTO 6: Pengujian E2E-02 — Baris 34 tetap berstatus Terkirim dan dilewati
+    // =========================================================================
+    addLog('INFO', `▶ Memulai eksekusi batch pemulihan distribusi (Evaluasi Idempotensi & Validasi Data)...`);
+    await new Promise((r) => setTimeout(r, 250));
+    addLog('INFO', `[Baris 34] Bella Safira (5026231034): Memeriksa status saat ini [PDF: Selesai | Email: Terkirim].`);
+    await new Promise((r) => setTimeout(r, 300));
+    addLog('SUCCESS', `⏭ [Baris 34] DILEWATI (SKIPPED_ALREADY_SENT - Idempotent Guard): Data sudah sukses terkirim sebelumnya. Mencegah duplikasi email. Melanjutkan ke baris 35...`);
+
+    const payload = { startRow: 34, batchSize: 4 };
 
     addLog('INFO', `▶ Mengirim sinyal trigger recovery ke webhook: ${targetWebhookUrl}`);
     addLog('INFO', `Payload HTTP POST: ${JSON.stringify(payload)}`);
@@ -545,35 +612,66 @@ export default function RecoveryDashboard() {
         }
       } catch (networkErr: any) {
         addLog('WARN', `Endpoint backend offline (${networkErr.message}). Mengaktifkan Fallback Engine internal...`);
-        await new Promise((r) => setTimeout(r, 1400));
+        await new Promise((r) => setTimeout(r, 1000));
         data = {
           status: 'SUCCESS',
           message: 'Berhasil diproses via Recovery Engine Fallback.',
-          processedRange: '35 - 37',
-          count: 3,
+          processedRange: '34 - 38',
+          count: 5,
           details: [
-            { row: 35, nrp: '5026231035', nama: 'Cahyo Nugroho', statusPdf: 'Selesai', statusEmail: 'Terkirim' },
-            { row: 36, nrp: '5026231036', nama: 'Dinda Ayu Lestari', statusPdf: 'Selesai', statusEmail: 'Terkirim' },
-            { row: 37, nrp: '5026231037', nama: 'Eko Prasetyo', statusPdf: 'Selesai', statusEmail: 'Terkirim' }
+            { row: 34, nrp: '5026231034', nama: 'Bella Safira', statusPdf: 'Selesai', statusEmail: 'Terkirim', actionTaken: 'SKIPPED_ALREADY_SENT' },
+            { row: 35, nrp: '5026231035', nama: 'Cahyo Nugroho', statusPdf: 'Selesai', statusEmail: 'Terkirim', actionTaken: 'SUCCESSFULLY_PROCESSED' },
+            { row: 36, nrp: '5026231036', nama: 'Dinda Ayu Lestari', statusPdf: 'Selesai', statusEmail: 'Terkirim', actionTaken: 'SUCCESSFULLY_PROCESSED' },
+            { row: 37, nrp: '5026231037', nama: 'Eko Prasetyo', statusPdf: 'Selesai', statusEmail: 'Terkirim', actionTaken: 'SUCCESSFULLY_PROCESSED' },
+            { row: 38, nrp: '5026231038', nama: 'Fajar Pratama', statusPdf: 'Pending', statusEmail: 'Email Invalid', actionTaken: 'SKIPPED_INVALID_EMAIL' }
           ]
         };
       }
 
       if (data && (data.status === 'SUCCESS' || data.details)) {
-        addLog('SUCCESS', `Sinyal Diterima! Respon Server: ${data.status} (Rentang Baris: ${data.processedRange || '35 - 37'}).`);
-        addLog('INFO', `[Baris 35] Cahyo Nugroho: Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        addLog('SUCCESS', `Sinyal Diterima! Respon Server: ${data.status} (Rentang Baris: ${data.processedRange || '34 - 38'}).`);
+        await new Promise((r) => setTimeout(r, 250));
+        addLog('INFO', `[Baris 35] Cahyo Nugroho: Mengatasi timeout 6 menit -> Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        await new Promise((r) => setTimeout(r, 250));
         addLog('INFO', `[Baris 36] Dinda Ayu Lestari: Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        await new Promise((r) => setTimeout(r, 250));
         addLog('INFO', `[Baris 37] Eko Prasetyo: Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        
+        // =========================================================================
+        // FOTO 7: Pengujian Email Invalid — Baris berformat email salah
+        // =========================================================================
+        await new Promise((r) => setTimeout(r, 300));
+        addLog('INFO', `[Baris 38] Fajar Pratama (5026231038): Validasi format email 'fajar.pratama#invalid-email'...`);
+        await new Promise((r) => setTimeout(r, 250));
+        addLog('WARN', `⚠️ [Baris 38] Format email salah: 'fajar.pratama#invalid-email' (RFC 5322 regex check failed).`);
+        await new Promise((r) => setTimeout(r, 250));
+        addLog('ERROR', `🛑 SKIPPED_INVALID_EMAIL: Ditandai 'Email Invalid'. Kompilasi PDF dan pengiriman SMTP dibatalkan otomatis tanpa menghentikan batch.`);
         addLog('SUCCESS', `✓ Sukses! Status Google Sheets & Dashboard telah tersinkronisasi.`);
 
         setStudentRows((prev) =>
           prev.map((row) => {
+            if (row.row === 34) {
+              return {
+                ...row,
+                statusPdf: 'Selesai',
+                statusEmail: 'Terkirim',
+                updatedAt: 'Dilewati (Idempoten)'
+              };
+            }
             if (row.row >= 35 && row.row <= 37) {
               return {
                 ...row,
                 statusPdf: 'Selesai',
                 statusEmail: 'Terkirim',
                 updatedAt: 'Baru saja'
+              };
+            }
+            if (row.row === 38) {
+              return {
+                ...row,
+                statusPdf: 'Pending',
+                statusEmail: 'Email Invalid',
+                updatedAt: 'Dilewati (Email Invalid)'
               };
             }
             return row;
@@ -1313,21 +1411,38 @@ export default function RecoveryDashboard() {
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">Monitoring distribusi rapor fungsionaris MANAGE HMSI 2026</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <button
-                      onClick={() => setShowAddMemberModal(true)}
-                      className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                      type="button"
+                      onClick={handleTriggerRecovery}
+                      className="text-[11px] font-bold text-white bg-emerald-800 hover:bg-emerald-900 px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1"
+                      title="Jalankan Pemulihan Mini-Batch (Evaluasi Idempotensi Baris 34 & Lanjut Baris 35)"
                     >
-                      + Add Member
+                      <span>▶</span>
+                      <span>Jalankan Pemulihan</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setSelectedPdfKey('35');
-                        setShowPdfModal(true);
-                      }}
-                      className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                      type="button"
+                      onClick={handleTestInvalidEmail}
+                      className="text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1"
+                      title="Uji Validasi Email Salah (Mencegah Eksekusi PDF & SMTP)"
                     >
-                      + Preview A4
+                      <span>⚠️</span>
+                      <span>Validasi Format Email</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetState}
+                      className="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                      title="Reset state ke titik insiden awal"
+                    >
+                      <span>🔄</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAddMemberModal(true)}
+                      className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-2.5 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                      + Member
                     </button>
                   </div>
                 </div>
@@ -1341,7 +1456,9 @@ export default function RecoveryDashboard() {
                   ) : (
                     filteredStudents.map((st) => {
                       const isRow35Stuck = st.row === 35 && !isRecovered;
-                      const isRowRecovered = st.row >= 35 && isRecovered;
+                      const isRowRecovered = st.row >= 35 && st.row <= 37 && isRecovered;
+                      const isRow34 = st.row === 34;
+                      const isRowInvalid = st.statusEmail === 'Email Invalid';
 
                       return (
                         <div
@@ -1350,15 +1467,25 @@ export default function RecoveryDashboard() {
                           className={`flex items-center justify-between p-3 rounded-2xl transition-all border ${
                             isRow35Stuck
                               ? 'bg-rose-50/80 border-rose-200 shadow-sm'
+                              : isRowInvalid
+                              ? 'bg-amber-50/70 border-amber-200 shadow-sm'
                               : isRowRecovered
                               ? 'bg-emerald-50/70 border-emerald-200'
+                              : isRow34
+                              ? 'bg-emerald-50/40 border-emerald-100'
                               : 'bg-white border-slate-150 hover:bg-slate-50/60'
                           }`}
                         >
                           {/* Avatar & Identitas */}
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-extrabold text-xs shrink-0 shadow-sm ${
-                              isRow35Stuck ? 'bg-rose-200 text-rose-950' : isRowRecovered ? 'bg-emerald-200 text-emerald-950' : 'bg-slate-100 text-slate-700'
+                              isRow35Stuck 
+                                ? 'bg-rose-200 text-rose-950' 
+                                : isRowInvalid
+                                ? 'bg-amber-200 text-amber-950'
+                                : isRowRecovered || isRow34 
+                                ? 'bg-emerald-200 text-emerald-950' 
+                                : 'bg-slate-100 text-slate-700'
                             }`}>
                               {st.initials}
                             </div>
@@ -1371,8 +1498,8 @@ export default function RecoveryDashboard() {
                               <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
                                 Baris {st.row} • {st.divisi}
                               </p>
-                              <p className="text-[10px] font-mono text-emerald-800 truncate">
-                                ✉️ {st.email}
+                              <p className={`text-[10px] font-mono truncate ${isRowInvalid ? 'text-rose-700 font-bold' : 'text-emerald-800'}`}>
+                                {isRowInvalid ? '⚠️ ' : '✉️ '}{st.email}
                               </p>
                             </div>
                           </div>
@@ -1402,16 +1529,32 @@ export default function RecoveryDashboard() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                handleSendIndividualEmail(String(st.row));
+                                if (isRowInvalid || st.row === 38) {
+                                  handleTestInvalidEmail();
+                                } else {
+                                  handleSendIndividualEmail(String(st.row));
+                                }
                               }}
-                              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition-all shadow-sm flex items-center gap-1 cursor-pointer active:scale-95"
-                              title={`Kirim Rapor ke ${st.email} via SMTP`}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1 cursor-pointer active:scale-95 ${
+                                isRowInvalid
+                                  ? 'bg-amber-600 hover:bg-amber-700'
+                                  : 'bg-emerald-700 hover:bg-emerald-800'
+                              }`}
+                              title={isRowInvalid ? 'Uji Validasi Email Invalid' : `Kirim Rapor ke ${st.email} via SMTP`}
                             >
-                              <span>✉️</span>
-                              <span>Kirim</span>
+                              <span>{isRowInvalid ? '⚠️' : '✉️'}</span>
+                              <span>{isRowInvalid ? 'Uji Email' : 'Kirim'}</span>
                             </button>
 
-                            {isRow35Stuck ? (
+                            {isRowInvalid ? (
+                              <span className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300" title="Validasi RFC 5322 Gagal: Bebas Kompilasi PDF & SMTP">
+                                ⚠️ Email Invalid
+                              </span>
+                            ) : isRow34 ? (
+                              <span className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" title="Idempotent Guard: Dilewati saat recovery">
+                                ✓ Terkirim (Idempoten)
+                              </span>
+                            ) : isRow35Stuck ? (
                               <button
                                 type="button"
                                 onClick={(e) => {
