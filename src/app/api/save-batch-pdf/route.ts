@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jsPDF } from 'jspdf';
-import fs from 'fs';
-import path from 'path';
+import JSZip from 'jszip';
 
 const PDF_RECORDS: Record<string, {
   nama: string;
@@ -294,12 +293,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const rows: string[] = body.rows || ['35', '36', '37'];
 
-    const outputDir = path.join(process.cwd(), 'output rapot');
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const savedFiles: string[] = [];
+    const zip = new JSZip();
+    const folder = zip.folder('output rapot');
 
     for (const rowKey of rows) {
       const record = PDF_RECORDS[rowKey];
@@ -308,22 +303,26 @@ export async function POST(req: NextRequest) {
       const pdfBuffer = generatePdfBuffer(record);
       const safeNama = record.nama.replace(/\s+/g, '_');
       const filename = `Rapor_MANAGE_2026_${record.nrp}_${safeNama}.pdf`;
-      const filePath = path.join(outputDir, filename);
 
-      fs.writeFileSync(filePath, pdfBuffer);
-      savedFiles.push(filename);
+      folder?.file(filename, pdfBuffer);
     }
 
-    return NextResponse.json({
-      success: true,
-      folder: outputDir,
-      files: savedFiles
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+    return new NextResponse(new Uint8Array(zipBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': 'attachment; filename="output_rapot.zip"',
+        'Content-Length': String(zipBuffer.length),
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
     });
   } catch (error: any) {
     return NextResponse.json(
       {
         success: false,
-        message: error.message || 'Gagal menyimpan PDF ke folder output rapot'
+        message: error.message || 'Gagal membuat arsip ZIP output rapot'
       },
       { status: 500 }
     );

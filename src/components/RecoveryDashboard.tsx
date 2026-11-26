@@ -637,7 +637,7 @@ export default function RecoveryDashboard() {
         await new Promise((r) => setTimeout(r, 250));
         addLog('INFO', `[Baris 37] Eko Prasetyo: Dokumen Google Docs dicopy -> PDF digenerate -> Mengirim email SMTP...`);
 
-        // Otomatis simpan 3 PDF ke folder lokal "output rapot"
+        // Otomatis unduh 3 PDF dalam 1 file ZIP ("output_rapot.zip" berisi folder "output rapot/") ke komputer lokal
         try {
           const saveRes = await fetch('/api/save-batch-pdf', {
             method: 'POST',
@@ -645,13 +645,19 @@ export default function RecoveryDashboard() {
             body: JSON.stringify({ rows: ['35', '36', '37'] })
           });
           if (saveRes.ok) {
-            const saveData = await saveRes.json();
-            if (saveData.success) {
-              addLog('SUCCESS', `📁 [Local Storage] ${saveData.files.length} PDF berhasil disimpan ke folder lokal: "output rapot/"`);
-            }
+            const blob = await saveRes.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = 'output_rapot.zip';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+            addLog('SUCCESS', `📦 [Download Lokal] 3 PDF berhasil diunduh ke komputer dalam arsip "output_rapot.zip" (folder "output rapot/").`);
           }
         } catch (saveErr) {
-          addLog('WARN', `Penyimpanan lokal folder "output rapot" dilewati (mode non-lokal).`);
+          addLog('WARN', `Unduh arsip ZIP terkendala.`);
         }
 
         // Otomatis kirim 3 email via SMTP beserta lampiran PDF
