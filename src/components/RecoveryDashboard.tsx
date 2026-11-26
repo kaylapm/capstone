@@ -631,11 +631,59 @@ export default function RecoveryDashboard() {
       if (data && (data.status === 'SUCCESS' || data.details)) {
         addLog('SUCCESS', `Sinyal Diterima! Respon Server: ${data.status} (Rentang Baris: ${data.processedRange || '34 - 38'}).`);
         await new Promise((r) => setTimeout(r, 250));
-        addLog('INFO', `[Baris 35] Cahyo Nugroho: Mengatasi timeout 6 menit -> Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        addLog('INFO', `[Baris 35] Cahyo Nugroho: Mengatasi timeout 6 menit -> Dokumen Google Docs dicopy -> PDF digenerate -> Mengirim email SMTP...`);
         await new Promise((r) => setTimeout(r, 250));
-        addLog('INFO', `[Baris 36] Dinda Ayu Lestari: Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        addLog('INFO', `[Baris 36] Dinda Ayu Lestari: Dokumen Google Docs dicopy -> PDF digenerate -> Mengirim email SMTP...`);
         await new Promise((r) => setTimeout(r, 250));
-        addLog('INFO', `[Baris 37] Eko Prasetyo: Dokumen Google Docs dicopy -> PDF digenerate -> GmailApp terkirim!`);
+        addLog('INFO', `[Baris 37] Eko Prasetyo: Dokumen Google Docs dicopy -> PDF digenerate -> Mengirim email SMTP...`);
+
+        // Otomatis simpan 3 PDF ke folder lokal "output rapot"
+        try {
+          const saveRes = await fetch('/api/save-batch-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: ['35', '36', '37'] })
+          });
+          if (saveRes.ok) {
+            const saveData = await saveRes.json();
+            if (saveData.success) {
+              addLog('SUCCESS', `📁 [Local Storage] ${saveData.files.length} PDF berhasil disimpan ke folder lokal: "output rapot/"`);
+            }
+          }
+        } catch (saveErr) {
+          addLog('WARN', `Penyimpanan lokal folder "output rapot" dilewati (mode non-lokal).`);
+        }
+
+        // Otomatis kirim 3 email via SMTP beserta lampiran PDF
+        for (const rowKey of ['35', '36', '37']) {
+          const st = PDF_DATABASE[rowKey];
+          if (!st) continue;
+          try {
+            const emailRes = await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'SEND_RAPOR',
+                nama: st.nama,
+                nrp: st.nrp,
+                divisi: st.divisi,
+                finalScore: st.finalScore,
+                grade: st.grade,
+                notes: st.notes,
+                recipient: 'kelagoooo@gmail.com',
+                smtpPass: smtpPassword || undefined
+              })
+            });
+            const emailData = await emailRes.json();
+            if (emailRes.ok && emailData.success) {
+              addLog('SUCCESS', `✓ [Baris ${rowKey}] Email + Lampiran PDF untuk ${st.nama} berhasil dikirim ke kelagoooo@gmail.com!`);
+            } else {
+              addLog('WARN', `⚠️ [Baris ${rowKey}] Pengiriman email ${st.nama} terkendala: ${emailData.message || 'Cek SMTP'}`);
+            }
+          } catch (mailErr: any) {
+            addLog('WARN', `⚠️ [Baris ${rowKey}] Gagal menghubungi SMTP untuk ${st.nama}: ${mailErr.message}`);
+          }
+        }
         
         // =========================================================================
         // FOTO 7: Pengujian Email Invalid — Baris berformat email salah
